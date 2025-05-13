@@ -19,7 +19,7 @@ def main(csv_path: str, outdir: str = "outputs"):
     raw["Month"] = pd.to_datetime(raw["Month"], errors="coerce")
     raw = raw.dropna(subset=["Month"])
 
-    # 3) Crime count: use the provided 'num_crimes_past_year_1km_full_period'
+    # 3) Crime count: use the provided 'num_crimes_past_year_1km_full_period's
     raw.rename(columns={"num_crimes_past_year_1km_full_period": "y"}, inplace=True)
 
     # 4) Ward detection: use WD24NM (ward name)
