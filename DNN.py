@@ -37,7 +37,7 @@ df_grouped['rolling_mean_3'] = df_grouped.groupby('WD24CD')['burglaries'] \
 # Drop rows with missing lag values
 df_features = df_grouped.dropna().reset_index(drop=True)
 
-# Save result to CSV
+# Save result
 df_features.to_csv('ward_month_features.csv', index=False)
 
 
