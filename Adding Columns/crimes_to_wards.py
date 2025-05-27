@@ -2,46 +2,51 @@ import pandas as pd
 import geopandas as gpd
 
 # Paths
-ward_shp = r"C:\Coding\CBL-London-Crime-\London-wards-2018-ESRI\London_Ward.shp"
-crime_csv = r"C:\Users\borka\Downloads\all_burglaries_london_cleaned_num_crimes_past_year_1km.csv"
-output_csv = r"C:\Users\borka\Downloads\London burglaries with ward names.csv"
+ward_shp   = r"C:\Coding\CBL-London-Crime-\London-wards-2018-ESRI\London_Ward.shp"
+crime_csv  = r"C:\Users\borka\Downloads\all_burglaries_london_cleaned.csv"
+output_csv = r"C:\Users\borka\Downloads\London_burglaries_with_wards_correct.csv"
 
-# Load shapefile and crime data
+
+# Load shapefile (convert to WGS84) and crime CSV
 wards = gpd.read_file(ward_shp).to_crs("EPSG:4326")
-df = pd.read_csv(crime_csv)
+df    = pd.read_csv(crime_csv)
 
-# Convert crimes to GeoDataFrame
+# Turn crimes into a GeoDataFrame
 gdf_crimes = gpd.GeoDataFrame(
     df,
     geometry=gpd.points_from_xy(df.longitude, df.latitude),
     crs="EPSG:4326"
 )
 
-# Check column names in ward file
-print("[INFO] Ward columns:", wards.columns)
+# Spatial join: attach ward polygons’ attributes to each crime point
+gdf = gpd.sjoin(
+    gdf_crimes,
+    wards,
+    how="left",
+    predicate="within"
+)
 
-# Spatial join
-gdf_joined = gpd.sjoin(gdf_crimes, wards, how="left", predicate="within")
+# Derive Month from dt
+gdf['Month'] = pd.to_datetime(gdf['dt']).dt.strftime('%Y-%m')
 
-# Rename columns
-gdf_joined = gdf_joined.rename(columns={
-    'NAME': 'Ward name',
-    'DISTRICT': 'Borough name'
-})
+# Drop the original dt and spatial/index columns
+gdf = gdf.drop(columns=['dt', 'geometry', 'index_right'], errors='ignore')
 
-# Save result
-gdf_joined.drop(columns='geometry').to_csv(output_csv, index=False)
-# Format dt → Month (YYYY-MM)
-gdf_joined['Month'] = pd.to_datetime(gdf_joined['dt']).dt.strftime('%Y-%m')
-gdf_joined = gdf_joined.drop(columns='dt')
+# Rename shapefile fields to your target codes:
+#   NAME       → WD24NM (ward name)
+#   GSS_CODE   → WD24CD (ward code)
+#   DISTRICT   → LAD24NM (borough name)
+gdf.rename(columns={
+    'NAME':      'WD24NM',
+    'GSS_CODE':  'WD24CD',
+    'DISTRICT':  'LAD24NM'
+}, inplace=True)
 
-# Reorder columns: keep Month as second column
-cols = list(gdf_joined.columns)
+# Reorder so Month is second
+cols = list(gdf.columns)
 cols.remove('Month')
-cols = [cols[0], 'Month'] + cols[1:]  # insert Month after the first column
+cols = [cols[0], 'Month'] + cols[1:]
 
-# Final write
-gdf_joined = gdf_joined[cols]
-gdf_joined.drop(columns='geometry', errors='ignore').to_csv(output_csv, index=False)
-print(f"[DONE] Saved with reordered Month column to: {output_csv}")
-
+# Save to CSV
+gdf[cols].to_csv(output_csv, index=False)
+print(f"[DONE] Saved output to: {output_csv}")

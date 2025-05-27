@@ -1,22 +1,19 @@
 import pandas as pd
 
-# === CONFIG ===
-INPUT_PATH = r"C:\Users\borka\Downloads\London_burglaries_with_wards.csv"
-OUTPUT_PATH = r"C:\Users\borka\Downloads\London_burglaries_with_wards_2021_onward.csv"
+# Paths – adjust as needed
+input_csv  = r"C:\Users\borka\Downloads\London_burglaries_with_wards_correct.csv"
+output_csv = r"C:\Users\borka\Downloads\London_burglaries_after2021.csv"
 
-# === LOAD CSV ===
-df = pd.read_csv(INPUT_PATH)
+# Load, parsing the Month column as datetime at month resolution
+df = pd.read_csv(input_csv)
+df['Month'] = pd.to_datetime(df['Month'], format='%Y-%m')
 
-# === PARSE AND FILTER ===
-# Convert 'Month' to datetime format
-df['Month'] = pd.to_datetime(df['Month'], format='%Y-%m', errors='coerce')
+# Filter: keep only dates strictly after 2021-12 (i.e. 2022-01-01 onward)
+filtered = df[df['Month'] >= pd.Timestamp('2021-01-01')]
 
-# Filter to include only rows from January 2021 onward
-df_filtered = df[df['Month'] >= pd.Timestamp("2021-01")].copy()
+# (Optionally) drop the Month datetime if you want to revert to 'YYYY-MM' strings:
+# filtered['Month'] = filtered['Month'].dt.strftime('%Y-%m')
 
-# Format 'Month' back to YYYY-MM (string)
-df_filtered['Month'] = df_filtered['Month'].dt.strftime('%Y-%m')
-
-# === SAVE RESULT ===
-df_filtered.to_csv(OUTPUT_PATH, index=False)
-print(f"[DONE] Saved filtered data to: {OUTPUT_PATH}")
+# Save to CSV
+filtered.to_csv(output_csv, index=False)
+print(f"[DONE] Filtered data saved to: {output_csv}")

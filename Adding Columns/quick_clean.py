@@ -32,9 +32,9 @@ df = df[df['dt'].notna()]
 print(f"[4] Rows with valid dates: {len(df):,}")
 
 # --- Optional: Drop unnecessary columns ---
-columns_to_keep = ['Crime ID', 'dt', 'longitude', 'latitude', 'Location', 'LSOA name', 'Last outcome category']
-df_clean = df[columns_to_keep].copy()
+#columns_to_keep = ['Crime ID', 'dt', 'longitude', 'latitude', 'Location', 'LSOA name', 'Last outcome category']
+#df_clean = df[columns_to_keep].copy()
 
 # --- Save cleaned file ---
-df_clean.to_csv(OUTPUT_PATH, index=False)
+df.to_csv(OUTPUT_PATH, index=False)
 print(f"[5] Cleaned file written to: {OUTPUT_PATH}")
