@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Placeholder Image Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 8px 16px;
+      background: #0070f3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    .container {
+      margin-bottom: 30px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Placeholder Image Generator</h1>
+  <p>Use this page to generate placeholder images for the London Crime Dashboard.</p>
+  
+  <div class="container">
+    <h2>London Map Placeholder</h2>
+    <canvas id="londonMap" width="600" height="400"></canvas><br>
+    <button onclick="generateLondonMap()">Generate Map</button>
+    <button onclick="downloadImage('londonMap', 'london-map-placeholder.jpg')">Download</button>
+  </div>
+  
+  <div class="container">
+    <h2>London Predictions Map Placeholder</h2>
+    <canvas id="predictionsMap" width="600" height="400"></canvas><br>
+    <button onclick="generatePredictionsMap()">Generate Map</button>
+    <button onclick="downloadImage('predictionsMap', 'london-map-predictions-placeholder.jpg')">Download</button>
+  </div>
+  
+  <div class="container">
+    <h2>Metrics Chart Placeholder</h2>
+    <canvas id="metricsChart" width="600" height="300"></canvas><br>
+    <button onclick="generateMetricsChart()">Generate Chart</button>
+    <button onclick="downloadImage('metricsChart', 'metrics-chart-placeholder.jpg')">Download</button>
+  </div>
+
+  <script>
+    // Generate London Map
+    function generateLondonMap() {
+      const canvas = document.getElementById('londonMap');
+      const ctx = canvas.getContext('2d');
+      
+      // Clear canvas
+      ctx.fillStyle = '#f0f0f0';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw a simple map outline
+      ctx.beginPath();
+      ctx.moveTo(150, 100);
+      ctx.bezierCurveTo(200, 50, 400, 50, 450, 100);
+      ctx.bezierCurveTo(500, 150, 500, 250, 450, 300);
+      ctx.bezierCurveTo(400, 350, 200, 350, 150, 300);
+      ctx.bezierCurveTo(100, 250, 100, 150, 150, 100);
+      ctx.closePath();
+      ctx.fillStyle = '#e0e0e0';
+      ctx.fill();
+      ctx.strokeStyle = '#999';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Draw "Thames" river
+      ctx.beginPath();
+      ctx.moveTo(150, 200);
+      ctx.bezierCurveTo(250, 180, 350, 220, 450, 200);
+      ctx.lineWidth = 8;
+      ctx.strokeStyle = '#a0c4e0';
+      ctx.stroke();
+      
+      // Add borough divisions
+      for (let i = 0; i < 8; i++) {
+        ctx.beginPath();
+        ctx.moveTo(150 + (i * 40), 100);
+        ctx.lineTo(150 + (i * 40), 300);
+        ctx.strokeStyle = '#ccc';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      
+      // Add text
+      ctx.font = '20px Arial';
+      ctx.fillStyle = '#333';
+      ctx.fillText('London Boroughs Map', 220, 30);
+      
+      // Add color legend
+      const colors = ['#f8d7da', '#f5c6cb', '#e2a9af', '#d6929a', '#c9798a', '#bd647a', '#b04f6a', '#a33b5a'];
+      for (let i = 0; i < colors.length; i++) {
+        ctx.fillStyle = colors[i];
+        ctx.fillRect(150 + (i * 40), 330, 40, 20);
+      }
+      ctx.fillStyle = '#333';
+      ctx.font = '12px Arial';
+      ctx.fillText('Low', 150, 365);
+      ctx.fillText('High', 450, 365);
+      ctx.fillText('Burglary Rate', 270, 365);
+    }
+    
+    // Generate Predictions Map
+    function generatePredictionsMap() {
+      const canvas = document.getElementById('predictionsMap');
+      const ctx = canvas.getContext('2d');
+      
+      // Clear canvas
+      ctx.fillStyle = '#f0f0f0';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw a simple map outline (same as London map)
+      ctx.beginPath();
+      ctx.moveTo(150, 100);
+      ctx.bezierCurveTo(200, 50, 400, 50, 450, 100);
+      ctx.bezierCurveTo(500, 150, 500, 250, 450, 300);
+      ctx.bezierCurveTo(400, 350, 200, 350, 150, 300);
+      ctx.bezierCurveTo(100, 250, 100, 150, 150, 100);
+      ctx.closePath();
+      ctx.fillStyle = '#e0e0e0';
+      ctx.fill();
+      ctx.strokeStyle = '#999';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Draw "Thames" river
+      ctx.beginPath();
+      ctx.moveTo(150, 200);
+      ctx.bezierCurveTo(250, 180, 350, 220, 450, 200);
+      ctx.lineWidth = 8;
+      ctx.strokeStyle = '#a0c4e0';
+      ctx.stroke();
+      
+      // Draw prediction hotspots
+      const hotspots = [
+        {x: 200, y: 150, r: 30},
+        {x: 350, y: 130, r: 20},
+        {x: 400, y: 250, r: 35},
+        {x: 250, y: 270, r: 25},
+        {x: 180, y: 220, r: 15}
+      ];
+      
+      for (const spot of hotspots) {
+        const gradient = ctx.createRadialGradient(spot.x, spot.y, 0, spot.x, spot.y, spot.r);
+        gradient.addColorStop(0, 'rgba(255, 0, 0, 0.6)');
+        gradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+        
+        ctx.beginPath();
+        ctx.arc(spot.x, spot.y, spot.r, 0, Math.PI * 2);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+      }
+      
+      // Add text
+      ctx.font = '20px Arial';
+      ctx.fillStyle = '#333';
+      ctx.fillText('London Predicted Hotspots', 200, 30);
+      
+      // Add legend
+      ctx.beginPath();
+      const legendGradient = ctx.createLinearGradient(150, 330, 450, 330);
+      legendGradient.addColorStop(0, 'rgba(255, 255, 0, 0.7)');
+      legendGradient.addColorStop(1, 'rgba(255, 0, 0, 0.7)');
+      ctx.fillStyle = legendGradient;
+      ctx.fillRect(150, 330, 300, 20);
+      
+      ctx.fillStyle = '#333';
+      ctx.font = '12px Arial';
+      ctx.fillText('Low Risk', 150, 365);
+      ctx.fillText('High Risk', 410, 365);
+      ctx.fillText('Predicted Burglary Risk', 250, 365);
+    }
+    
+    // Generate Metrics Chart
+    function generateMetricsChart() {
+      const canvas = document.getElementById('metricsChart');
+      const ctx = canvas.getContext('2d');
+      
+      // Clear canvas
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw axes
+      ctx.beginPath();
+      ctx.moveTo(50, 250);
+      ctx.lineTo(550, 250); // x-axis
+      ctx.moveTo(50, 250);
+      ctx.lineTo(50, 50);  // y-axis
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Add axis labels
+      ctx.fillStyle = '#333';
+      ctx.font = '14px Arial';
+      ctx.fillText('Time (Months)', 270, 280);
+      ctx.save();
+      ctx.translate(20, 150);
+      ctx.rotate(-Math.PI/2);
+      ctx.fillText('Burglary Count', 0, 0);
+      ctx.restore();
+      
+      // Draw grid lines
+      ctx.strokeStyle = '#e0e0e0';
+      ctx.lineWidth = 1;
+      
+      // Horizontal grid lines
+      for (let y = 250; y >= 50; y -= 40) {
+        ctx.beginPath();
+        ctx.moveTo(50, y);
+        ctx.lineTo(550, y);
+        ctx.stroke();
+      }
+      
+      // Vertical grid lines
+      for (let x = 50; x <= 550; x += 50) {
+        ctx.beginPath();
+        ctx.moveTo(x, 250);
+        ctx.lineTo(x, 50);
+        ctx.stroke();
+      }
+      
+      // Draw actual data line
+      const actualData = [
+        {x: 50, y: 200},
+        {x: 100, y: 180},
+        {x: 150, y: 220},
+        {x: 200, y: 150},
+        {x: 250, y: 170},
+        {x: 300, y: 140},
+        {x: 350, y: 160},
+        {x: 400, y: 130},
+        {x: 450, y: 120},
+        {x: 500, y: 140}
+      ];
+      
+      ctx.beginPath();
+      ctx.moveTo(actualData[0].x, actualData[0].y);
+      for (let i = 1; i < actualData.length; i++) {
+        ctx.lineTo(actualData[i].x, actualData[i].y);
+      }
+      ctx.strokeStyle = '#4285f4';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      
+      // Draw predicted data line
+      const predictedData = [
+        {x: 400, y: 130},
+        {x: 450, y: 120},
+        {x: 500, y: 140},
+        {x: 550, y: 110}
+      ];
+      
+      ctx.beginPath();
+      ctx.moveTo(predictedData[0].x, predictedData[0].y);
+      for (let i = 1; i < predictedData.length; i++) {
+        ctx.lineTo(predictedData[i].x, predictedData[i].y);
+      }
+      ctx.setLineDash([5, 5]);
+      ctx.strokeStyle = '#db4437';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.setLineDash([]);
+      
+      // Add legend
+      ctx.fillStyle = '#4285f4';
+      ctx.fillRect(400, 20, 20, 10);
+      ctx.fillStyle = '#333';
+      ctx.fillText('Actual', 425, 30);
+      
+      ctx.strokeStyle = '#db4437';
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(400, 50);
+      ctx.lineTo(420, 50);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillText('Predicted', 425, 55);
+      
+      // Add title
+      ctx.font = '18px Arial';
+      ctx.fillStyle = '#333';
+      ctx.fillText('Burglary Trends and Predictions', 180, 30);
+    }
+    
+    // Download image function
+    function downloadImage(canvasId, filename) {
+      const canvas = document.getElementById(canvasId);
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = canvas.toDataURL('image/jpeg', 0.8);
+      link.click();
+    }
+    
+    // Generate all placeholders on load
+    window.onload = function() {
+      generateLondonMap();
+      generatePredictionsMap();
+      generateMetricsChart();
+    };
+  </script>
+</body>
+</html> 

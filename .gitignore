@@ -1,3 +1,4 @@
+# Project specific files
 LSOA_boundries/LSOA_2021_EW_BFE_V10.shp
 London_burglaries_with_wards_correct_with_price.csv
 /data/hidden_layer_embeddings
@@ -5,3 +6,71 @@ lsoa_features.csv
 lsoa_features.csv
 lsoa_features.csv
 lsoa_features.csv
+
+# Next.js specific
+ProjectDashboard/.next/
+ProjectDashboard/out/
+ProjectDashboard/build/
+ProjectDashboard/.vercel/
+
+# Dependencies
+ProjectDashboard/node_modules/
+ProjectDashboard/.pnp
+ProjectDashboard/.pnp.js
+
+# Testing
+ProjectDashboard/coverage/
+
+# Production
+ProjectDashboard/build/
+
+# Environment files
+ProjectDashboard/.env
+ProjectDashboard/.env.local
+ProjectDashboard/.env.development.local
+ProjectDashboard/.env.test.local
+ProjectDashboard/.env.production.local
+
+# Debug logs
+ProjectDashboard/npm-debug.log*
+ProjectDashboard/yarn-debug.log*
+ProjectDashboard/yarn-error.log*
+
+# Local Netlify folder
+ProjectDashboard/.netlify
+
+# Python specific
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE specific
+.idea/
+.vscode/
+*.swp
+*.swo
