@@ -1,0 +1,5 @@
+# This file ensures the public directory is tracked by git
+# Place placeholder images in this directory:
+# - london-map-placeholder.jpg
+# - london-map-predictions-placeholder.jpg
+# - metrics-chart-placeholder.jpg 
