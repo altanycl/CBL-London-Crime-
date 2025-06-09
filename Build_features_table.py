@@ -19,8 +19,10 @@ from shapely.geometry import box
 
 def main():
     INPUT_CSV = "London_burglaries_with_wards_correct_with_price.csv"
-    OUTPUT_CSV = "lsoa_features.csv"
+    OUTPUT_CSV = "lsoa_features_final.csv"
     SHP_PATH   = "LSOA_boundries/LSOA_2021_EW_BFE_V10.shp"
+    N195_PATH = "N195.csv"
+    POP_PATH = "Popdense.xlsx" 
 
     # 1) Load and parse CSV robustly
     df = pd.read_csv(
@@ -90,7 +92,93 @@ def main():
     first_month = df['month'].min()
     features = features[features['month'] != first_month].reset_index(drop=True)
 
-    # 10) Normalize dynamic features per month safely (avoid division by zero)
+    # 10) Attach IMD Decile and Rank London 
+    imd = (
+        pd.read_csv(
+            N195_PATH,
+            engine="python",        # tolerant parser
+            on_bad_lines="skip",    # drop footer rows with too many commas
+            dtype=str               # keep raw strings for now
+        )
+        .rename(columns=lambda c: c.strip())  # trim stray spaces in headers
+    )
+
+    # keep the two columns we want and one row per LSOA
+    imd = imd[['LSOA code', 'IMD Rank London', 'IMD Decile London']].drop_duplicates('LSOA code')
+
+    # make the two metrics numeric; blanks → 0
+    for col in ['IMD Rank London', 'IMD Decile London']:
+        imd[col] = pd.to_numeric(imd[col], errors='coerce').fillna(0)
+
+    # merge into the main feature table
+    features = features.merge(imd, on='LSOA code', how='left')
+
+    # 11) Attach annual population metrics
+    # 1) read the sheet (first sheet assumed)
+    pop = (
+        pd.read_excel(POP_PATH, dtype={'LSOA 2021 Code': str})
+        .rename(columns=lambda c: c.strip())          # trim header spaces
+        .dropna(subset=['LSOA 2021 Code'])            # guard against blank rows
+    )
+
+    # 2) identify the yearly columns
+    pop_cols  = [c for c in pop.columns if c.endswith("Pop")]
+    dens_cols = [c for c in pop.columns if c.endswith("PpSqKm")]
+
+    # 3) reshape to long format  →  one row per (LSOA, year)
+    pop_long = (
+        pop.melt(
+            id_vars=['LSOA 2021 Code'], value_vars=pop_cols,
+            var_name='year_col', value_name='Population'
+        )
+    )
+    pop_long['year'] = pop_long['year_col'].str.extract(r'(\d{4})').astype(int)
+    pop_long = pop_long.drop(columns='year_col')
+
+    dens_long = (
+        pop.melt(
+            id_vars=['LSOA 2021 Code'], value_vars=dens_cols,
+            var_name='year_col', value_name='PopulationPerSqKm'
+        )
+    )
+    dens_long['year'] = dens_long['year_col'].str.extract(r'(\d{4})').astype(int)
+    dens_long = dens_long.drop(columns='year_col')
+
+    # 4) merge the two metrics side-by-side
+    pop_full = (
+        pop_long.merge(dens_long, on=['LSOA 2021 Code', 'year'], how='inner')
+                .rename(columns={'LSOA 2021 Code': 'LSOA code'})
+    )
+
+    # 5) bring year into the crime-feature table
+    features['year'] = features['month'].dt.year
+
+    # 6) merge annual population onto every month row
+    features = features.merge(
+        pop_full, on=['LSOA code', 'year'], how='left'
+    )
+
+    # 7) carry 2022 values forward to 2023-2025 (and back-fill if needed)
+    features = features.sort_values(['LSOA code', 'year'])
+    for col in ['Population', 'PopulationPerSqKm']:
+        features[col] = (
+            features.groupby('LSOA code')[col]
+                    .ffill()            # forward-fill to future years
+                    .bfill()            # (unlikely) back-fill if 2011 missing
+                    .astype(float)
+        )
+    areas = (
+        pop[['LSOA 2021 Code', 'AreaSqKm']]
+        .rename(columns={'LSOA 2021 Code': 'LSOA code',
+                        'AreaSqKm': 'AreaSqKm'})
+        .drop_duplicates('LSOA code')
+    )
+    features = features.merge(areas, on='LSOA code', how='left') 
+
+    # 8) clean-up helper column
+    features = features.drop(columns='year')
+
+    # 12) Normalize dynamic features per month safely (avoid division by zero)
     dyn_feats = [
         'crime_count_lag1', 'crime_count_lag3', 'crime_count_lag12',
         'num_crimes_past_year_1km', 'MedianPrice'
@@ -101,22 +189,22 @@ def main():
         sigma = group.transform(lambda x: x.std(ddof=0)).replace(0, 1)
         features[col] = (features[col] - mu) / sigma
 
-    # 11) Cyclical month encoding
+    # 13) Cyclical month encoding
     features['month_num'] = features['month'].dt.month
     features['month_sin'] = np.sin(2 * np.pi * features['month_num'] / 12)
     features['month_cos'] = np.cos(2 * np.pi * features['month_num'] / 12)
 
-    # 12) Filter LSOAs by intersecting the Greater London bbox
-    # 12a) load full UK LSOA shapefile in British National Grid
+    # 14) Filter LSOAs by intersecting the Greater London bbox
+    # 14a) load full UK LSOA shapefile in British National Grid
     gdf = gpd.read_file(SHP_PATH).to_crs(epsg=27700)
-    # 12b) define Greater London bounding box in WGS84
+    # 14b) define Greater London bounding box in WGS84
     min_lon, min_lat, max_lon, max_lat = -0.5103, 51.2868, 0.3340, 51.6919
     london_box = (
         gpd.GeoSeries([box(min_lon, min_lat, max_lon, max_lat)], crs="EPSG:4326")
            .to_crs(epsg=27700)
            .iloc[0]
     )
-    # 12c) pick only LSOAs whose geometry intersects the London box
+    # 14c) pick only LSOAs whose geometry intersects the London box
     london_lsoas = gdf[gdf.geometry.intersects(london_box)]
     valid_codes = set(london_lsoas['LSOA21CD'])
     before = len(features)
@@ -125,7 +213,7 @@ def main():
     print(f"Filtered out {before-after} rows outside Greater London bbox")
 
     # ──────────────────────────────────────────────────────────────────
-    # 13) ADDITIONAL FEATURES: 12-month ranking + months-since-last-crime (capped + z-scored)
+    # 15) ADDITIONAL FEATURES: 12-month ranking + months-since-last-crime (capped + z-scored)
     # ──────────────────────────────────────────────────────────────────
 
     # (a) Ensure sorted by LSOA & month
@@ -179,13 +267,15 @@ def main():
         (features['months_since_last_crime'] - ms_mean) / ms_std
     )
 
-    # 14) Reorder & save (including the two new columns)
+    # 16) Reorder & save (including the two new columns)
     out_cols = [
         'LSOA code', 'month', 'y_true',
         'crime_count_lag1', 'crime_count_lag3', 'crime_count_lag12',
         'num_crimes_past_year_1km', 'MedianPrice',
         'month_sin', 'month_cos',
-        'rank_last_year', 'months_since_last_crime'
+        'rank_last_year', 'months_since_last_crime',
+        'IMD Decile London', 'IMD Rank London',
+        'AreaSqKm', 'Population', 'PopulationPerSqKm', 
     ]
     features[out_cols].to_csv(OUTPUT_CSV, index=False)
     print(f"✅ Saved to {OUTPUT_CSV} ({features.shape[0]} rows)")
