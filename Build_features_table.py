@@ -221,6 +221,7 @@ def main():
     # 14c) pick only LSOAs whose geometry intersects the London box
     london_lsoas = gdf[gdf.geometry.intersects(london_box)]
     valid_codes = set(london_lsoas['LSOA21CD'])
+    before = len(features)
     features = features[features['LSOA code'].isin(valid_codes)].reset_index(drop=True)
     after = len(features)
     print(f"Filtered out {before-after} rows outside Greater London bbox")
@@ -341,7 +342,8 @@ def main():
         'month_sin','month_cos',
         'rank_last_year','months_since_last_crime',
         'roll_mean_6m','roll_std_6m','pct_change_1m','yoy_change',
-        'ward_mean_lag1','diff_from_ward_last_month'
+        'ward_mean_lag1','diff_from_ward_last_month',
+        'IMD Rank London', 'IMD Decile London', 'Population', 'PopulationPerSqKm', 'AreaSqKm'
     ]
 
     # Save raw features
@@ -356,6 +358,9 @@ def main():
     combined_out_cols = base_cols.copy()
     combined_out_cols.extend([col + '_z' for col in dyn_feats])
     combined_out_cols.append('months_since_last_crime_z')
+
+    print("Columns in features before copy:", features.columns.tolist())
+    print("Columns in combined_features_df before saving:", combined_features_df.columns.tolist())
 
     combined_features_df[combined_out_cols].to_csv(COMBINED_OUTPUT, index=False)
     print(f"✅ Saved combined features to {COMBINED_OUTPUT} ({combined_features_df.shape[0]} rows)")

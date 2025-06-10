@@ -55,9 +55,13 @@ print(f"Last month → {last_month_date.year}-{last_month_date.month:02d}")
 
 # ─── 3) Features & target ───────────────────────────────────────────────────────
 features = [
-    'LSOA_code','crime_count_lag1','crime_count_lag3','crime_count_lag12',
-    'num_crimes_past_year_1km','MedianPrice','month_sin','month_cos',
+    'LSOA_code',
+    'crime_count_lag1','crime_count_lag3','crime_count_lag12',
+    'num_crimes_past_year_1km','MedianPrice',
+    'month_sin','month_cos',
     'rank_last_year','months_since_last_crime','year','month_num',
+    'WD24CD','WD24NM',
+    'IMD Rank London', 'IMD Decile London', 'Population', 'PopulationPerSqKm', 'AreaSqKm',
     'crime_count_lag1_z','crime_count_lag3_z','crime_count_lag12_z',
     'num_crimes_past_year_1km_z','MedianPrice_z','months_since_last_crime_z'
 ]
