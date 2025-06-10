@@ -6,9 +6,15 @@ Reads raw crime CSV, aggregates to LSOA × month (filling zeros),
 builds lagged & extra features, drops the first month (2010-12),
 normalizes inputs per-month (safely), computes a clean month feature,
 filters out any LSOAs that intersect the Greater London bounding box,
-adds two new features (rank by past-year crime and months since last crime),
-and writes out a feature table for downstream GCN modeling.
+adds features including rolling stats, changes, spatial context and
+ranks, then writes out a feature table for downstream GCN modeling.
 Imputes missing extras from previous month per LSOA, or 0 if none.
+Also saves ward code and ward name (WD24CD, WD24NM) as raw features.
+Derived metrics added:
+  - 6-month rolling mean/std of y_true
+  - Month-over-month percent change
+  - Year-over-year change
+  - Ward-level average lagged by one month and deviation
 """
 
 import pandas as pd
@@ -19,7 +25,9 @@ from shapely.geometry import box
 
 def main():
     INPUT_CSV = "London_burglaries_with_wards_correct_with_price.csv"
-    OUTPUT_CSV = "lsoa_features.csv"
+    Z_OUTPUT = "lsoa_features.csv"
+    RAW_OUTPUT = "non_Z_score_feature_table.csv"
+    COMBINED_OUTPUT = "combined_features.csv"
     SHP_PATH   = "LSOA_boundries/LSOA_2021_EW_BFE_V10.shp"
 
     # 1) Load and parse CSV robustly
@@ -31,6 +39,12 @@ def main():
         low_memory=False
     )
     df['month'] = df['Month_dt'].dt.to_period('M')
+
+    # Extract ward code & name per LSOA (static)
+    ward_info = (
+        df[['LSOA code', 'WD24CD', 'WD24NM']]
+          .drop_duplicates(subset=['LSOA code'])
+    )
 
     # 2) Crime counts per LSOA × month
     crime_counts = (
@@ -90,105 +104,153 @@ def main():
     first_month = df['month'].min()
     features = features[features['month'] != first_month].reset_index(drop=True)
 
-    # 10) Normalize dynamic features per month safely (avoid division by zero)
-    dyn_feats = [
-        'crime_count_lag1', 'crime_count_lag3', 'crime_count_lag12',
-        'num_crimes_past_year_1km', 'MedianPrice'
-    ]
-    for col in dyn_feats:
-        group = features.groupby('month')[col]
-        mu = group.transform('mean')
-        sigma = group.transform(lambda x: x.std(ddof=0)).replace(0, 1)
-        features[col] = (features[col] - mu) / sigma
-
-    # 11) Cyclical month encoding
+    # 10) Cyclical month encoding
     features['month_num'] = features['month'].dt.month
     features['month_sin'] = np.sin(2 * np.pi * features['month_num'] / 12)
     features['month_cos'] = np.cos(2 * np.pi * features['month_num'] / 12)
 
-    # 12) Filter LSOAs by intersecting the Greater London bbox
-    # 12a) load full UK LSOA shapefile in British National Grid
+    # 11) Filter LSOAs by intersecting the Greater London bbox
     gdf = gpd.read_file(SHP_PATH).to_crs(epsg=27700)
-    # 12b) define Greater London bounding box in WGS84
     min_lon, min_lat, max_lon, max_lat = -0.5103, 51.2868, 0.3340, 51.6919
     london_box = (
         gpd.GeoSeries([box(min_lon, min_lat, max_lon, max_lat)], crs="EPSG:4326")
            .to_crs(epsg=27700)
            .iloc[0]
     )
-    # 12c) pick only LSOAs whose geometry intersects the London box
     london_lsoas = gdf[gdf.geometry.intersects(london_box)]
     valid_codes = set(london_lsoas['LSOA21CD'])
-    before = len(features)
     features = features[features['LSOA code'].isin(valid_codes)].reset_index(drop=True)
-    after = len(features)
-    print(f"Filtered out {before-after} rows outside Greater London bbox")
 
-    # ──────────────────────────────────────────────────────────────────
-    # 13) ADDITIONAL FEATURES: 12-month ranking + months-since-last-crime (capped + z-scored)
-    # ──────────────────────────────────────────────────────────────────
-
-    # (a) Ensure sorted by LSOA & month
+    # 12) Additional temporal & ranking features
     features = features.sort_values(['LSOA code', 'month'])
-
-    # (b) Compute “crimes in last 12 months” per LSOA (rolling sum of y_true)
+    # 12a) 12-month rolling sum (for rank)
     features['crimes_last_12m'] = (
-        features
-        .groupby('LSOA code')['y_true']
-        .rolling(window=12, min_periods=1)
-        .sum()
-        .reset_index(level=0, drop=True)
+        features.groupby('LSOA code')['y_true']
+                .rolling(window=12, min_periods=1)
+                .sum().reset_index(level=0, drop=True)
     )
-
-    # (c) Rank LSOAs, within each month, by crimes_last_12m (highest = rank 1)
     features['rank_last_year'] = (
-        features
-        .groupby('month')['crimes_last_12m']
-        .rank(method='dense', ascending=False)
-        .astype(int)
+        features.groupby('month')['crimes_last_12m']
+                .rank(method='dense', ascending=False).astype(int)
     )
-
-    # (d) Compute “months since last crime” for each LSOA
-    #     1) mark the month whenever y_true > 0, then ffill to carry forward last crime month
+    # 12b) Months since last crime (RAW VALUE AT THIS POINT)
     features['last_crime_month'] = features['month'].where(features['y_true'] > 0)
     features['last_crime_month'] = (
-        features
-        .groupby('LSOA code')['last_crime_month']
-        .ffill()
+        features.groupby('LSOA code')['last_crime_month'].ffill()
     )
-    #     2) subtract current month – last_crime_month; convert to integer number of months
     delta = features['month'] - features['last_crime_month']
     features['months_since_last_crime'] = (
         delta.map(lambda x: x.n if pd.notnull(x) else np.nan)
              .astype('Int64')
+             .fillna(12).clip(upper=12)
+    )
+    # NOTE: 'months_since_last_crime' is RAW at this point. Z-scoring happens later.
+
+    # Merge static ward info
+    features = features.merge(ward_info, on='LSOA code', how='left')
+
+    # 13) Derived rolling & change metrics
+    # 13a) 6-month rolling mean & std of y_true
+    features['roll_mean_6m'] = (
+        features.groupby('LSOA code')['y_true']
+                .rolling(window=6, min_periods=1)
+                .mean().reset_index(level=0, drop=True)
+    )
+    features['roll_std_6m'] = (
+        features.groupby('LSOA code')['y_true']
+                .rolling(window=6, min_periods=1)
+                .std(ddof=0).reset_index(level=0, drop=True).fillna(0)
+    )
+    # 13b) Month-over-month percent change
+    features['pct_change_1m'] = (
+        features.groupby('LSOA code')['y_true']
+                .pct_change(1).fillna(0)
+    )
+    # 13c) Year-over-year change
+    features['yoy_change'] = features['y_true'] - features['crime_count_lag12']
+
+    # 13d) Ward-level mean of last month & deviation
+    ward_month = (
+        features.groupby(['WD24CD','month'])['y_true']
+                .mean().rename('ward_mean').reset_index()
+    )
+    ward_month['ward_mean_lag1'] = (
+        ward_month.groupby('WD24CD')['ward_mean'].shift(1).fillna(0)
+    )
+    features = features.merge(
+        ward_month[['WD24CD','month','ward_mean_lag1']],
+        on=['WD24CD','month'], how='left'
+    )
+    features['diff_from_ward_last_month'] = (
+        features['y_true'] - features['ward_mean_lag1']
     )
 
-    # (e) Cap “months_since_last_crime” at 12 and fill any NaN with 12
-    features['months_since_last_crime'] = (
-        features['months_since_last_crime']
-        .fillna(12)        # if no previous crime ever, set to 12
-        .clip(upper=12)    # if >12, cap at 12
-    )
+    # --- Prepare outputs from the fully-featured RAW DataFrame ---
+    # At this point, 'features' contains all raw (non-z-scored) features
+    raw_features_df = features.copy()
+    lsoa_features_df = features.copy()
+    combined_features_df = features.copy()
 
-    # (f) Convert “months_since_last_crime” to z-score (global)
-    ms_mean = features['months_since_last_crime'].mean()
-    ms_std  = features['months_since_last_crime'].std(ddof=0)
-    if ms_std == 0:
-        ms_std = 1
-    features['months_since_last_crime'] = (
-        (features['months_since_last_crime'] - ms_mean) / ms_std
-    )
-
-    # 14) Reorder & save (including the two new columns)
-    out_cols = [
-        'LSOA code', 'month', 'y_true',
+    # Define dynamic features for z-scoring
+    dyn_feats = [
         'crime_count_lag1', 'crime_count_lag3', 'crime_count_lag12',
-        'num_crimes_past_year_1km', 'MedianPrice',
-        'month_sin', 'month_cos',
-        'rank_last_year', 'months_since_last_crime'
+        'num_crimes_past_year_1km', 'MedianPrice'
     ]
-    features[out_cols].to_csv(OUTPUT_CSV, index=False)
-    print(f"✅ Saved to {OUTPUT_CSV} ({features.shape[0]} rows)")
+
+    # Z-score 'lsoa_features_df' in place
+    for col in dyn_feats:
+        group = lsoa_features_df.groupby('month')[col]
+        mu = group.transform('mean')
+        sigma = group.transform(lambda x: x.std(ddof=0)).replace(0, 1)
+        lsoa_features_df[col] = (lsoa_features_df[col] - mu) / sigma
+
+    # Z-score 'months_since_last_crime' in place for lsoa_features_df
+    ms_mean_lsoa = lsoa_features_df['months_since_last_crime'].mean()
+    ms_std_lsoa = lsoa_features_df['months_since_last_crime'].std(ddof=0) or 1
+    lsoa_features_df['months_since_last_crime'] = (
+        (lsoa_features_df['months_since_last_crime'] - ms_mean_lsoa) / ms_std_lsoa
+    )
+
+    # Add _z columns to 'combined_features_df' (using its raw values for calculation)
+    for col in dyn_feats:
+        group = combined_features_df.groupby('month')[col]
+        mu = group.transform('mean')
+        sigma = group.transform(lambda x: x.std(ddof=0)).replace(0, 1)
+        combined_features_df[col + '_z'] = (combined_features_df[col] - mu) / sigma
+
+    # Add 'months_since_last_crime_z' to 'combined_features_df'
+    ms_mean_combined = combined_features_df['months_since_last_crime'].mean()
+    ms_std_combined = combined_features_df['months_since_last_crime'].std(ddof=0) or 1
+    combined_features_df['months_since_last_crime_z'] = (
+        (combined_features_df['months_since_last_crime'] - ms_mean_combined) / ms_std_combined
+    )
+
+    # Define base output columns
+    base_cols = [
+        'LSOA code','WD24CD','WD24NM','month','y_true',
+        'crime_count_lag1','crime_count_lag3','crime_count_lag12',
+        'num_crimes_past_year_1km','MedianPrice',
+        'month_sin','month_cos',
+        'rank_last_year','months_since_last_crime',
+        'roll_mean_6m','roll_std_6m','pct_change_1m','yoy_change',
+        'ward_mean_lag1','diff_from_ward_last_month'
+    ]
+
+    # Save raw features
+    raw_features_df[base_cols].to_csv(RAW_OUTPUT, index=False)
+    print(f"✅ Saved raw features to {RAW_OUTPUT} ({raw_features_df.shape[0]} rows)")
+
+    # Save z-scored features
+    lsoa_features_df[base_cols].to_csv(Z_OUTPUT, index=False)
+    print(f"✅ Saved z-scored features to {Z_OUTPUT} ({lsoa_features_df.shape[0]} rows)")
+
+    # Save combined features
+    combined_out_cols = base_cols.copy()
+    combined_out_cols.extend([col + '_z' for col in dyn_feats])
+    combined_out_cols.append('months_since_last_crime_z')
+
+    combined_features_df[combined_out_cols].to_csv(COMBINED_OUTPUT, index=False)
+    print(f"✅ Saved combined features to {COMBINED_OUTPUT} ({combined_features_df.shape[0]} rows)")
 
 
 if __name__ == '__main__':
