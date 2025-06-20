@@ -1,0 +1,48 @@
+<svg width="600" height="400" xmlns="http://www.w3.org/2000/svg">
+  <rect width="600" height="400" fill="#f0f0f0" />
+  <path d="M150,100 C200,50 400,50 450,100 C500,150 500,250 450,300 C400,350 200,350 150,300 C100,250 100,150 150,100 Z" fill="#e0e0e0" stroke="#999" stroke-width="2" />
+  <path d="M150,200 C250,180 350,220 450,200" stroke="#a0c4e0" stroke-width="8" fill="none" />
+  
+  <!-- Hotspots -->
+  <circle cx="200" cy="150" r="30" fill="url(#hotspot1)" />
+  <circle cx="350" cy="130" r="20" fill="url(#hotspot2)" />
+  <circle cx="400" cy="250" r="35" fill="url(#hotspot3)" />
+  <circle cx="250" cy="270" r="25" fill="url(#hotspot4)" />
+  <circle cx="180" cy="220" r="15" fill="url(#hotspot5)" />
+  
+  <text x="200" y="30" font-family="Arial" font-size="20" fill="#333">London Predicted Hotspots</text>
+  
+  <!-- Legend -->
+  <linearGradient id="legendGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%" style="stop-color:rgba(255,255,0,0.7)" />
+    <stop offset="100%" style="stop-color:rgba(255,0,0,0.7)" />
+  </linearGradient>
+  <rect x="150" y="330" width="300" height="20" fill="url(#legendGradient)" />
+  <text x="150" y="365" font-family="Arial" font-size="12" fill="#333">Low Risk</text>
+  <text x="410" y="365" font-family="Arial" font-size="12" fill="#333">High Risk</text>
+  <text x="250" y="365" font-family="Arial" font-size="12" fill="#333">Predicted Burglary Risk</text>
+  
+  <!-- Hotspot gradients -->
+  <defs>
+    <radialGradient id="hotspot1" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+      <stop offset="0%" style="stop-color:rgba(255,0,0,0.6)" />
+      <stop offset="100%" style="stop-color:rgba(255,0,0,0)" />
+    </radialGradient>
+    <radialGradient id="hotspot2" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+      <stop offset="0%" style="stop-color:rgba(255,0,0,0.6)" />
+      <stop offset="100%" style="stop-color:rgba(255,0,0,0)" />
+    </radialGradient>
+    <radialGradient id="hotspot3" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+      <stop offset="0%" style="stop-color:rgba(255,0,0,0.6)" />
+      <stop offset="100%" style="stop-color:rgba(255,0,0,0)" />
+    </radialGradient>
+    <radialGradient id="hotspot4" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+      <stop offset="0%" style="stop-color:rgba(255,0,0,0.6)" />
+      <stop offset="100%" style="stop-color:rgba(255,0,0,0)" />
+    </radialGradient>
+    <radialGradient id="hotspot5" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+      <stop offset="0%" style="stop-color:rgba(255,0,0,0.6)" />
+      <stop offset="100%" style="stop-color:rgba(255,0,0,0)" />
+    </radialGradient>
+  </defs>
+</svg> 

@@ -1,0 +1,87 @@
+# Next.js specific
+ProjectDashboard/.next/
+ProjectDashboard/out/
+ProjectDashboard/build/
+ProjectDashboard/.vercel/
+
+# Dependencies
+ProjectDashboard/node_modules/
+ProjectDashboard/.pnp
+ProjectDashboard/.pnp.js
+
+# Testing
+ProjectDashboard/coverage/
+
+# Production
+ProjectDashboard/build/
+
+# Environment files
+ProjectDashboard/.env
+ProjectDashboard/.env.local
+ProjectDashboard/.env.development.local
+ProjectDashboard/.env.test.local
+ProjectDashboard/.env.production.local
+
+# Debug logs
+ProjectDashboard/npm-debug.log*
+ProjectDashboard/yarn-debug.log*
+ProjectDashboard/yarn-error.log*
+
+# Local Netlify folder
+ProjectDashboard/.netlify
+
+# Python specific
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Data files
+yearly_burglaries/
+temp_backup/lsoa_features_final.csv
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE specific
+.idea/
+.vscode/
+*.swp
+*.swo
+combined_features.csv
+data/hidden_layer_embeddings/lsoa_gcn1_hidden_features.csv
+data/hidden_layer_embeddings/lsoa_gcn1_hidden_features_with_y.csv
+data/hidden_layer_embeddings/lsoa_gcn_hidden_3layers.csv
+data/hidden_layer_embeddings/lsoa_gcn_hidden_4layers.csv
+data/hidden_layer_embeddings/lsoa_gcn_hidden_both_layers.csv
+data/hidden_layer_embeddings/lsoa_gcn_hidden_layer1.csv
+data/hidden_layer_embeddings/lsoa_gcn_hidden_layer2.csv
+data/hidden_layer_embeddings/lsoa_gcn_hidden_layers.csv
+last_month_predictions.csv
+last_month_predictions_lgb.csv
+last_month_predictions_xgb.csv
+London_burglaries_with_wards_correct_with_price.csv
+LSOA_boundries/LSOA_2021_EW_BFE_V10.shp
+lsoa_features.csv
+non_Z_score_feature_table.csv
