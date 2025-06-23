@@ -1,6 +1,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+<<<<<<< HEAD
+=======
+
+/* Custom z-index utilities for modals above maps */
+@layer utilities {
+  .z-\[9999\] {
+    z-index: 9999;
+  }
+  .z-\[10000\] {
+    z-index: 10000;
+  }
+}
+>>>>>>> e780b3354e9a96e159021bfbaf01d17031f477eb
  
 @layer base {
   :root {

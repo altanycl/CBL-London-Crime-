@@ -26,6 +26,11 @@ export interface MapData {
   features: MapFeatureCollection;
   maxValue: number;
   timeLabel: string;
+<<<<<<< HEAD
+=======
+  detailLevel?: string;
+  boundaryCount?: number;
+>>>>>>> e780b3354e9a96e159021bfbaf01d17031f477eb
 }
 
 export interface PastBurglariesData extends MapData {

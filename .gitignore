@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 
+=======
+>>>>>>> e780b3354e9a96e159021bfbaf01d17031f477eb
 # Next.js specific
 ProjectDashboard/.next/
 ProjectDashboard/out/
@@ -52,6 +55,13 @@ var/
 .installed.cfg
 *.egg
 
+<<<<<<< HEAD
+=======
+# Data files
+yearly_burglaries/
+temp_backup/lsoa_features_final.csv
+
+>>>>>>> e780b3354e9a96e159021bfbaf01d17031f477eb
 # OS specific
 .DS_Store
 .DS_Store?
